@@ -29,7 +29,9 @@ namespace ImageFunctions
 {
     public static class Thumbnail
     {
-        private static readonly string BLOB_STORAGE_CONNECTION_STRING = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
+        //private static readonly string BLOB_STORAGE_CONNECTION_STRING = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
+        private static readonly string IMAGE_STORAGE_CONNECTION_STRING = Environment.GetEnvironmentVariable("ImageStorageAccount");
+        private static readonly string THUMBNAIL_STORAGE_CONNECTION_STRING = Environment.GetEnvironmentVariable("ThumbnailStorageAccount");
 
         private static string GetBlobNameFromUrl(string bloblUrl)
         {
@@ -88,9 +90,12 @@ namespace ImageFunctions
                     {
                         var thumbnailWidth = Convert.ToInt32(Environment.GetEnvironmentVariable("THUMBNAIL_WIDTH"));
                         var thumbContainerName = Environment.GetEnvironmentVariable("THUMBNAIL_CONTAINER_NAME");
-                        var blobServiceClient = new BlobServiceClient(BLOB_STORAGE_CONNECTION_STRING);
-                        var blobContainerClient = blobServiceClient.GetBlobContainerClient(thumbContainerName);
+                        var imageBlobServiceClient = new BlobServiceClient(IMAGE_STORAGE_CONNECTION_STRING);
+                        
                         var blobName = GetBlobNameFromUrl(createdEvent.Url);
+
+                        var thumbnailBlobServiceClient = new BlobServiceClient(THUMBNAIL_STORAGE_CONNECTION_STRING);
+                        var thumbnailBlobContainerClient = thumbnailBlobServiceClient.GetBlobContainerClient(thumbContainerName);
 
                         using (var output = new MemoryStream())
                         using (Image<Rgba32> image = Image.Load(input))
@@ -101,7 +106,7 @@ namespace ImageFunctions
                             image.Mutate(x => x.Resize(thumbnailWidth, height));
                             image.Save(output, encoder);
                             output.Position = 0;
-                            await blobContainerClient.UploadBlobAsync(blobName, output);
+                            await thumbnailBlobContainerClient.UploadBlobAsync(blobName, output);
                         }
                     }
                     else
